@@ -7,7 +7,8 @@ app.use(bodyparser.urlencoded({ extended: true }));
 app.use(express.static('node'));
 app.use('/Ressources/',express.static(__dirname + '/Ressources'));
 app.set('view engine','ems');
-
+let date = require('date-and-time');
+let now = new Date();
 var mysqlConnection = mysql.createConnection({
     host: 'localhost',
     user:'root',
@@ -15,7 +16,6 @@ var mysqlConnection = mysql.createConnection({
     password:'root',
     database:'money_plan_db'
 });
-
 mysqlConnection.connect((err)=>{
     if(!err)
     console.log('DB connection success.');
@@ -89,9 +89,9 @@ console.log(err)
 /////
 
 /*  SET MONEY */
-app.get('/setMoney/:money/ :username',(req,res)=>{
+app.get('/setMoney/:money/:username',(req,res)=>{
     let user = req.params;
-    var sql = "Update users SET money = ? where username = ?";
+    var sql = "Update users SET `money` = `money` + ? where id = ?";
     mysqlConnection.query(sql,[user.money,user.username],
         (err, rows, fields)=>{
             if(!err){
@@ -127,8 +127,10 @@ app.get('/setMoney/:username/ :id',(req,res)=>{
 /* Create */
 app.get('/Insert/:name/:image/:type/:category/:transaction_money/:userID',(req,res)=>{
     let transaction = req.params;
-    var sql = "INSERT INTO transactions (name,image,type,category,transaction_money,userID) VALUES (?,?,?,?,?,?)";
-    mysqlConnection.query(sql,[transaction.name,transaction.image,transaction.type,transaction.category,transaction.transaction_money, transaction.userID],
+	let date = require('date-and-time');
+let my = date.format(now, 'YYYY-MM-DD');  
+    var sql = "INSERT INTO transactions (name,image,type,category,transaction_money,userID,date) VALUES (?,?,?,?,?,?,?)";
+    mysqlConnection.query(sql,[transaction.name,transaction.image,transaction.type,transaction.category,transaction.transaction_money, transaction.userID,my],
         (err, rows, fields)=>{
             if(!err){
                 res.setHeader('Content-Type', 'application/json');
@@ -174,10 +176,10 @@ console.log(err)
 });
 /////
 /* UPDATE */
-app.get('/Update/:transaction_money /: id',(req,res)=>{
+app.get('/Updatetype/:id/:userID',(req,res)=>{
     let transaction = req.params;
-    var sql = "Update transactions SET transaction_money = ? where id = ?";
-    mysqlConnection.query(sql,[transaction.transaction_money,transaction.id],
+    var sql = "Update transactions SET  `type` = 'target' where id = ? AND userID = ?";
+    mysqlConnection.query(sql,[transaction.id,transaction. userID],
         (err, rows, fields)=>{
             if(!err){
                 res.setHeader('Content-Type', 'application/json');
@@ -204,4 +206,104 @@ app.get('/Delete/:id',(req,res)=>{
                 res.send(JSON.stringify(err,undefined,2));
                 }
             });
+});
+/*  GETCOMPLETED */
+app.get('/getCompletedTargets/:userID',(req,res)=>{
+    let user = req.params;
+    var sql = "Select * From transactions where  `currentMoney` = `transaction_money` AND userID = ? AND `type` = 'target'";
+     mysqlConnection.query(sql,[user.userID],
+        (err, rows, fields)=>{
+            if(!err){
+              res.send(JSON.stringify({"transactions" : rows}));
+            }
+            else{
+                res.setHeader('Content-Type', 'application/json');
+                res.send(JSON.stringify(err,undefined,2));
+            }
+        });
+});
+/*  GETCOMPLETED */
+app.get('/getCurentTargets/:userID',(req,res)=>{
+    let user = req.params;
+    var sql = "Select * From transactions where  `currentMoney` < `transaction_money` AND userID = ? AND `type` = 'target'";
+     mysqlConnection.query(sql,[user.userID],
+        (err, rows, fields)=>{
+            if(!err){
+              res.send(JSON.stringify({"transactions" : rows}));
+            }
+            else{
+                res.setHeader('Content-Type', 'application/json');
+                res.send(JSON.stringify(err,undefined,2));
+            }
+        });
+});
+
+
+app.get('/getWhatWish/:userID',(req,res)=>{
+    let user = req.params;
+     var sql = "SELECT * FROM transactions JOIN users ON transactions.userID  = users.id  WHERE transactions.type = 'wish' and transactionS.userID = ? AND  transactions.transaction_money  < users.money ";
+     mysqlConnection.query(sql,[user.userID],
+        (err, rows, fields)=>{
+            if(!err){
+              res.send(JSON.stringify({"transactions" : rows}));
+            }
+            else{
+                res.setHeader('Content-Type', 'application/json');
+                res.send(JSON.stringify(err,undefined,2));
+            }
+        });
+});
+/*  GETCOMPLETED */
+app.get('/getTodayTrans/:userID',(req,res)=>{
+    let user = req.params;
+	let date = require('date-and-time');
+let my = date.format(now, 'YYYY-MM-DD');  
+    var sql = "Select * From transactions where  date  = ? AND userID =  ?";
+     mysqlConnection.query(sql,[my,user.userID],
+        (err, rows, fields)=>{
+            if(!err){
+              res.send(JSON.stringify({"transactions" : rows}));
+            }
+            else{
+                res.setHeader('Content-Type', 'application/json');
+                res.send(JSON.stringify(err,undefined,2));
+            }
+        });
+});
+/*  GETCOMPLETED */
+app.get('/getWeekTrans/:userID',(req,res)=>{
+    let user = req.params;
+	let date = require('date-and-time');
+let my = date.format(now, 'YYYY-MM-DD');
+let week = date.addDays(now, -7);
+console.log(week);
+    var sql = "Select * From transactions where (? < date) AND userID =  ?  ";
+     mysqlConnection.query(sql,[week,user.userID],
+        (err, rows, fields)=>{
+            if(!err){
+              res.send(JSON.stringify({"transactions" : rows}));
+            }
+            else{
+                res.setHeader('Content-Type', 'application/json');
+                res.send(JSON.stringify(err,undefined,2));
+            }
+        });
+});
+app.get('/getMonthTrans/:userID',(req,res)=>{
+    let user = req.params;
+	let date = require('date-and-time');
+let my = date.format(now, 'YYYY-MM-DD');
+let week = date.addDays(now, -30);
+console.log(week);
+    var sql = "Select * From transactions where (? < date) AND userID =  ? ";
+     mysqlConnection.query(sql,[week,user.userID],
+        (err, rows, fields)=>{
+            if(!err){
+              res.send(JSON.stringify({"transactions" : rows}));
+            }
+            else{
+                res.setHeader('Content-Type', 'application/json');
+                res.send(JSON.stringify(err,undefined,2));
+            }
+        });
 });
