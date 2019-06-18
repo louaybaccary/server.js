@@ -241,7 +241,7 @@ app.get('/getCurentTargets/:userID',(req,res)=>{
 
 app.get('/getWhatWish/:userID',(req,res)=>{
     let user = req.params;
-     var sql = "SELECT * FROM transactions JOIN users ON transactions.userID  = users.id  WHERE transactions.type = 'wish' and transactionS.userID = ? AND  transactions.transaction_money  < users.money ";
+     var sql = "SELECT t.Id,u.id ,u.money,name,Image,transaction_money,userID,currentMoney,date,type FROM transactions  t JOIN users u  On  t.userID  = u.id WHERE  t.type = 'wish' and t.userID = ? AND t.transaction_money  < u.money ";
      mysqlConnection.query(sql,[user.userID],
         (err, rows, fields)=>{
             if(!err){
